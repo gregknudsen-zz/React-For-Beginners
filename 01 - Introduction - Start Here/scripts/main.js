@@ -11,6 +11,11 @@ var createBrowserHistory = require('history/lib/createBrowserHistory');
 
 var h = require('./helpers');
 
+//Firebase
+var Rebase = require('re-base');
+var base = Rebase.createClass('https://react-for-beginners-9b482.firebaseio.com/')
+
+
 /*
 	App
 */
@@ -22,8 +27,14 @@ var App = React.createClass({
 			order: {}
 		}
 	},
+	componentDidMount: function() {
+		base.syncState(this.props.params.storeId + '/fishes', {
+			context: this,
+			state: 'fishes'
+		});
+	},
 	addToOrder: function(key){
-		this.state.order[key] = this.state.order + 1 || 1;
+		this.state.order[key] = this.state.order[key] + 1 || 1;
 		this.setState({order: this.state.order});
 	},
 	addFish: function(fish) {
@@ -153,13 +164,28 @@ var Header = React.createClass({
 */
 
 var Order = React.createClass({
+	renderOrder: function(key) {
+		var fish = this.props.fishes[key];
+		var count = this.props.order[key];
+
+		if(!fish) {
+			return <li key={key}>Sorry, fish is no longer available</li>
+		}
+
+		return (<li>
+			{count}lbs
+			{fish.name}
+			<span className="price">{h.formatPrice(count * fish.price)}</span>
+		</li>)
+	},
 	render : function () {
 		var orderIds = Object.keys(this.props.order);
+		
 		var total = orderIds.reduce((prevTotal, key)=> {
 			var fish = this.props.fishes[key];
 			var count = this.props.order[key];
 			var isAvailable = fish && fish.status === 'available';
-
+			
 			if(fish && isAvailable) {
 				return prevTotal + (count * parseInt(fish.price) || 0);
 			}
@@ -171,6 +197,7 @@ var Order = React.createClass({
 			<div className="order-wrap">
 				<h2 className="order-title">Your Order</h2>
 				<ul className="order">
+					{orderIds.map(this.renderOrder)}
 					<li className="total">
 						<strong>Total:</strong>
 						{h.formatPrice(total)}
